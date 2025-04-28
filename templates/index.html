@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TF-IDF Анализатор Текста</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; }
+        h1, h2 { text-align: center; color: #333; }
+        form { margin-bottom: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input[type="file"] { display: block; margin-bottom: 15px; }
+        input[type="submit"] { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        input[type="submit"]:hover { background-color: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .error { color: red; font-weight: bold; margin-top: 15px; }
+        .info { color: #555; font-style: italic; margin-top: 15px; }
+        .pagination { text-align: center; margin-top: 20px; }
+        .pagination a { margin: 0 5px; text-decoration: none; padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; color: #007bff; }
+        .pagination a.active { background-color: #007bff; color: white; border-color: #007bff; }
+        .pagination span { margin: 0 5px; padding: 5px 10px; color: #aaa; }
+    </style>
+</head>
+<body>
+    <h1>Анализ текста: TF-IDF</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        <label for="textFile">Загрузите текстовый файл (.txt):</label>
+        <input type="file" id="textFile" name="textFile" accept=".txt" required>
+        <input type="submit" value="Анализировать">
+    </form>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if filename %}
+         <p class="info">Анализ файла: <strong>{{ filename }}</strong></p>
+    {% endif %}
+
+    {% if results %}
+        <h2>Топ {{ results|length }} слов по IDF</h2>
+        {% if total_words %}
+             <p class="info">Всего уникальных слов найдено: {{ total_words }}</p>
+        {% endif %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Слово</th>
+                    <th>TF (Частота в тексте)</th>
+                    <th>IDF (Обратная частота документа)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in results %}
+                <tr>
+                    <td>{{ item.word }}</td>
+                    <td>{{ item.tf }}</td>
+                    <td>{{ item.idf | round(4) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Простая постраничная навигация (если реализована) -->
+        {% if pagination %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('index', page=pagination.prev_num) }}">&laquo; Предыдущая</a>
+            {% else %}
+                <span>&laquo; Предыдущая</span>
+            {% endif %}
+
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                    {% if p == pagination.page %}
+                        <a href="{{ url_for('index', page=p) }}" class="active">{{ p }}</a>
+                    {% else %}
+                         <a href="{{ url_for('index', page=p) }}">{{ p }}</a>
+                    {% endif %}
+                {% else %}
+                    <span>…</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <a href="{{ url_for('index', page=pagination.next_num) }}">Следующая &raquo;</a>
+            {% else %}
+                 <span>Следующая &raquo;</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <p class="info" style="margin-top: 20px;">
+            Примечание: IDF рассчитывается на основе *только* данного документа. В контексте одного документа IDF будет одинаковым (равным 1.0 по формуле scikit-learn `log(N+1 / df+1) + 1`, где N=1, df=1) для всех слов, присутствующих в документе. Сортировка по IDF в данном случае не несет практической пользы для ранжирования *внутри* документа. Отображаются слова, обработанные векторизатором.
+        </p>
+    {% elif results is not none and not results %}
+         <p class="info">В загруженном файле не найдено слов для анализа после обработки (возможно, файл пуст или содержит только стоп-слова/символы).</p>
+    {% endif %}
+
+</body>
+</html>
